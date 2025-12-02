@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Constellation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            background: #030308; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        canvas { display: block; }
+        
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(10, 10, 20, 0.7);
+            backdrop-filter: blur(10px);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(30, 30, 50, 0.8);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+        
+        .control-btn.active {
+            background: rgba(100, 130, 200, 0.3);
+            border-color: rgba(100, 130, 200, 0.5);
+            color: #fff;
+        }
+        
+        .control-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        /* Glow mode indicator */
+        #glow-indicator {
+            position: absolute;
+            bottom: 76px;
+            left: 64px;
+            background: rgba(12, 12, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #glow-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Settings Panel */
+        #settings-panel {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            width: 280px;
+            background: rgba(12, 12, 20, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 100;
+        }
+        
+        #settings-panel.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.02em;
+        }
+        
+        .settings-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .settings-close svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .settings-content {
+            padding: 16px 18px;
+        }
+        
+        .setting-group {
+            margin-bottom: 18px;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .setting-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .setting-value {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .setting-slider {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+        
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.15s ease;
+        }
+        
+        .setting-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .setting-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .setting-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            margin: 18px 0;
+        }
+        
+        .setting-btn {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+        }
+        
+        .setting-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .setting-btn.secondary {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .setting-btn.secondary:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Agent labels */
+        .agent-label {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            pointer-events: none;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+            transform: translate(-50%, -100%);
+            padding-bottom: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .agent-label.visible {
+            opacity: 1;
+        }
+        
+        /* Agent detail panel - full screen */
+        #agent-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(8, 8, 15, 0.95);
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #agent-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        #panel-header {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        #back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        
+        #back-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        #agent-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+            flex: 1;
+        }
+        
+        #mood-indicator {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        #panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+        
+        .info-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+        }
+        
+        .info-value {
+            font-size: 15px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+        
+        .info-card.highlight {
+            background: rgba(100, 140, 220, 0.08);
+            border-color: rgba(100, 140, 220, 0.15);
+        }
+        
+        .info-card.warning {
+            background: rgba(220, 160, 100, 0.08);
+            border-color: rgba(220, 160, 100, 0.15);
+        }
+        
+        /* Loading state */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            z-index: 50;
+        }
+        
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Clickable star areas */
+        .star-hitbox {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .star-hitbox:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        Loading agents...
+    </div>
+    
+    <div id="controls">
+        <button class="control-btn" id="toggle-names" title="Toggle agent names">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </button>
+        <button class="control-btn" id="toggle-glow" title="Change glow style">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+        </button>
+        <button class="control-btn" id="toggle-settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </button>
+    </div>
+    
+    <div id="glow-indicator"></div>
+    
+    <div id="settings-panel">
+        <div class="settings-header">
+            <span>Settings</span>
+            <button class="settings-close" id="close-settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="settings-content">
+            <div class="setting-group">
+                <div class="setting-row">
+                    <span class="setting-label">Particle Speed</span>
+                    <span class="setting-value" id="speed-value">0.1x</span>
+                </div>
+                <input type="range" class="setting-slider" id="speed-slider" min="0.1" max="3" step="0.1" value="0.1">
+            </div>
+            <div class="setting-group">
+                <div class="setting-row">
+                    <span class="setting-label">Bloom Intensity</span>
+                    <span class="setting-value" id="bloom-value">1.0</span>
+                </div>
+                <input type="range" class="setting-slider" id="bloom-slider" min="0" max="4" step="0.1" value="1">
+            </div>
+            <div class="setting-group">
+                <div class="setting-row">
+                    <span class="setting-label">Camera Rotation</span>
+                    <span class="setting-value" id="camera-value">0.5x</span>
+                </div>
+                <input type="range" class="setting-slider" id="camera-slider" min="0" max="3" step="0.1" value="0.5">
+            </div>
+            <div class="setting-divider"></div>
+            <button class="setting-btn" id="reset-settings">Reset to Defaults</button>
+            <button class="setting-btn secondary" id="refresh-data">Refresh Agent Data</button>
+        </div>
+    </div>
+    
+    <div id="agent-panel">
+        <div id="panel-header">
+            <button id="back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div id="agent-name">Agent Name</div>
+            <div id="mood-indicator">🌟</div>
+        </div>
+        <div id="panel-content">
+            <!-- Populated dynamically -->
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // ============================================
+        // AGENT DATA & STATE
+        // ============================================
+        
+        let agents = [];
+        let showNames = false;
+        let selectedAgent = null;
+        let isZooming = false;
+        
+        // Test data - will be replaced by webhook data
+        const TEST_AGENTS = [
+            {
+                id: "1",
+                name: "Atlas",
+                bottleneck: "Waiting on API rate limits from external service",
+                focus: "Backend Infrastructure & System Reliability",
+                proposedAction: "Implement request queuing with exponential backoff",
+                casualThought: "I wonder if we could batch these requests instead of hammering the endpoint...",
+                proposedDeliverable: "Optimized API integration module with smart rate limiting",
+                mood: "focused",
+                coreBeliefs: "Reliability over speed. Every system should gracefully degrade. Build for the failure case first."
+            },
+            {
+                id: "2",
+                name: "Nova",
+                bottleneck: "User feedback loop is too slow to iterate effectively",
+                focus: "User Experience Research & Product Insights",
+                proposedAction: "Set up automated sentiment analysis on support tickets and reviews",
+                casualThought: "The patterns in user behavior this quarter are fascinating - they're not using the feature we thought they would...",
+                proposedDeliverable: "Real-time user insights dashboard with trend detection",
+                mood: "curious",
+                coreBeliefs: "Users know what they need, even when they can't articulate it. Listen to behavior, not just words."
+            },
+            {
+                id: "3",
+                name: "Cipher",
+                bottleneck: "Security audit findings need prioritization framework",
+                focus: "Security Architecture & Compliance",
+                proposedAction: "Create risk matrix and address critical vulnerabilities first",
+                casualThought: "The new encryption standards are actually quite elegant once you understand the math behind them...",
+                proposedDeliverable: "Security remediation roadmap with prioritized action items",
+                mood: "cautious",
+                coreBeliefs: "Security is not a feature, it's a foundation. Assume breach, design for containment."
+            },
+            {
+                id: "4",
+                name: "Pulse",
+                bottleneck: "Cross-team dependencies creating cascading delays",
+                focus: "Operations & Workflow Optimization",
+                proposedAction: "Propose async communication protocol between teams with clear SLAs",
+                casualThought: "Everyone's working incredibly hard, just not always in sync - we need better handoff rituals...",
+                proposedDeliverable: "Team coordination framework with dependency mapping",
+                mood: "optimistic",
+                coreBeliefs: "Great work happens when friction is removed, not when pressure is added. Optimize for flow."
+            },
+            {
+                id: "5",
+                name: "Echo",
+                bottleneck: "Documentation is outdated and scattered across platforms",
+                focus: "Knowledge Management & Developer Experience",
+                proposedAction: "Consolidate docs and implement auto-update pipeline from code comments",
+                casualThought: "Good docs are like good UX - invisible when done right, painfully obvious when missing...",
+                proposedDeliverable: "Living documentation system with automated freshness checks",
+                mood: "determined",
+                coreBeliefs: "If it's not documented, it doesn't exist. If it's not findable, it's not documented."
+            }
+        ];
+
+        // ============================================
+        // WEBHOOK INTEGRATION
+        // ============================================
+        
+        async function fetchAgentData() {
+            const loadingEl = document.getElementById('loading');
+            
+            try {
+                // In production, this calls your n8n webhook
+                const webhookUrl = window.APP_CONFIG?.WEBHOOK_FETCH_URL;
+                
+                if (webhookUrl && webhookUrl !== 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ action: 'fetch_agents' })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Handle both { agents: [...] } and [{ agents: [...] }] formats
+                        if (Array.isArray(data) && data[0]?.agents) {
+                            agents = data[0].agents;
+                        } else if (data.agents) {
+                            agents = data.agents;
+                        } else if (Array.isArray(data)) {
+                            agents = data;
+                        }
+                        console.log('Loaded agents from webhook:', agents);
+                    } else {
+                        throw new Error('Webhook request failed');
+                    }
+                } else {
+                    // Use test data
+                    console.log('Using test data (no webhook configured)');
+                    agents = TEST_AGENTS;
+                }
+            } catch (error) {
+                console.warn('Failed to fetch from webhook, using test data:', error);
+                agents = TEST_AGENTS;
+            }
+            
+            loadingEl.style.display = 'none';
+            initVisualization();
+        }
+        
+        async function sendAgentUpdate(agentId, updateData) {
+            const webhookUrl = window.APP_CONFIG?.WEBHOOK_UPDATE_URL;
+            
+            if (!webhookUrl || webhookUrl === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                console.log('Update would be sent:', { agentId, updateData });
+                return;
+            }
+            
+            try {
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'update_agent',
+                        agentId,
+                        ...updateData
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to send update:', error);
+            }
+        }
+
+        // ============================================
+        // THREE.JS VISUALIZATION
+        // ============================================
+        
+        let scene, camera, renderer;
+        let particleSystem, bloomSystem, bloom2System;
+        let positions, colors, sizes;
+        let orbits = [];
+        let clock;
+        let particleSpeed = 0.1, bloomStrength = 1.0, cameraSpeed = 0.015;
+        let cameraSpeedMultiplier = 0.5;
+        let particleVisibility = 1;
+        let cameraAngle = 0; // Track camera angle separately to prevent jumps
+        let particleTime = 0; // Track particle time separately to prevent jumps
+        let lastTime = 0;
+        
+        // Mouse interaction
+        let isDragging = false;
+        let previousMouseX = 0;
+        let previousMouseY = 0;
+        let manualRotationX = 0;
+        let manualRotationY = 0;
+        let cameraDistance = 180;
+        let autoRotate = true;
+        
+        const DEFAULTS = {
+            particleSpeed: 0.1,
+            bloomStrength: 1.0,
+            cameraSpeedMultiplier: 0.5
+        };
+        
+        // Agent star positions (fixed, larger orbits for the 5 agents)
+        let agentStars = [];
+        let agentLabels = [];
+        let agentHitboxes = [];
+        
+        const TOTAL_PARTICLES = 2000;
+        const AGENT_STAR_SIZE = 4;
+
+        const palette = [
+            [0.6, 0.8, 1.0],
+            [0.7, 0.9, 0.95],
+            [0.85, 0.85, 1.0],
+            [0.95, 0.95, 1.0],
+            [0.7, 0.75, 0.9],
+            [0.6, 0.7, 0.85],
+            [0.5, 0.7, 0.8],
+            [0.8, 0.7, 0.9],
+        ];
+        
+        // Distinct colors for agent stars
+        const agentColors = [
+            [0.6, 0.85, 1.0],   // Cyan
+            [1.0, 0.8, 0.9],    // Pink
+            [0.8, 1.0, 0.85],   // Mint
+            [1.0, 0.9, 0.7],    // Warm
+            [0.85, 0.75, 1.0],  // Lavender
+        ];
+
+        function initVisualization() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x030308);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
+            camera.position.set(0, 100, 200);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            positions = new Float32Array(TOTAL_PARTICLES * 3);
+            colors = new Float32Array(TOTAL_PARTICLES * 3);
+            sizes = new Float32Array(TOTAL_PARTICLES);
+
+            createCentralMass();
+            createParticles();
+            createAgentStars();
+            createBackgroundStars();
+            setupControls();
+            setupInteraction();
+
+            clock = new THREE.Clock();
+            window.addEventListener('resize', onWindowResize);
+            setupMouseControls();
+            animate();
+        }
+        
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // Left click
+                    isDragging = true;
+                    autoRotate = false;
+                    previousMouseX = e.clientX;
+                    previousMouseY = e.clientY;
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+            
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                canvas.style.cursor = 'grab';
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging || isZooming || selectedAgent) return;
+                
+                const deltaX = e.clientX - previousMouseX;
+                const deltaY = e.clientY - previousMouseY;
+                
+                manualRotationX += deltaX * 0.005;
+                manualRotationY += deltaY * 0.003;
+                
+                // Clamp vertical rotation
+                manualRotationY = Math.max(-1.2, Math.min(1.2, manualRotationY));
+                
+                previousMouseX = e.clientX;
+                previousMouseY = e.clientY;
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                if (isZooming || selectedAgent) return;
+                e.preventDefault();
+                
+                cameraDistance += e.deltaY * 0.3;
+                cameraDistance = Math.max(80, Math.min(400, cameraDistance));
+            }, { passive: false });
+            
+            // Double-click to reset view
+            canvas.addEventListener('dblclick', () => {
+                if (selectedAgent) return;
+                autoRotate = true;
+                manualRotationX = 0;
+                manualRotationY = 0;
+                cameraDistance = 180;
+            });
+            
+            canvas.style.cursor = 'grab';
+        }
+
+        function createCentralMass() {
+            const coreGeo = new THREE.SphereGeometry(3, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            scene.add(core);
+
+            // Minimal glow for center
+            const glowGeo = new THREE.PlaneGeometry(40, 40);
+            const glowMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    bloom: { value: bloomStrength }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float bloom;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        vec2 center = vUv - 0.5;
+                        float dist = length(center);
+                        float alpha = smoothstep(0.2, 0.0, dist) * 0.4 * (bloom / 2.0);
+                        alpha *= smoothstep(0.5, 0.3, dist);
+                        vec3 color = vec3(0.9, 0.95, 1.0);
+                        gl_FragColor = vec4(color, alpha);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            
+            centerGlowMesh = new THREE.Mesh(glowGeo, glowMat);
+            scene.add(centerGlowMesh);
+        }
+        
+        let centerGlowMesh = null;
+        let currentGlowMode = 2; // Default to Sparkle
+        const GLOW_MODES = ['Soft', 'Vivid', 'Sparkle', 'Halo', 'Minimal'];
+        
+        function updateCenterGlow() {
+            if (centerGlowMesh) {
+                centerGlowMesh.lookAt(camera.position);
+                centerGlowMesh.material.uniforms.bloom.value = bloomStrength;
+            }
+        }
+        
+        // Glow texture for agent stars
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.5)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createParticles() {
+            for (let i = 0; i < TOTAL_PARTICLES; i++) {
+                const semiMajor = 15 + Math.pow(Math.random(), 0.6) * 130;
+                const eccentricity = 0.1 + Math.random() * 0.5;
+                const semiMinor = semiMajor * Math.sqrt(1 - eccentricity * eccentricity);
+                
+                const inclination = Math.random() * Math.PI;
+                const ascendingNode = Math.random() * Math.PI * 2;
+                const argPeriapsis = Math.random() * Math.PI * 2;
+                const phase = Math.random() * Math.PI * 2;
+                const baseSpeed = 0.3 / Math.sqrt(semiMajor) * (0.8 + Math.random() * 0.4);
+                
+                orbits.push({
+                    semiMajor, semiMinor, inclination,
+                    ascendingNode, argPeriapsis, phase,
+                    speed: baseSpeed
+                });
+
+                updateParticlePosition(i, 0);
+
+                const color = palette[Math.floor(Math.random() * palette.length)];
+                const brightness = 0.7 + Math.random() * 0.3;
+                colors[i * 3] = color[0] * brightness;
+                colors[i * 3 + 1] = color[1] * brightness;
+                colors[i * 3 + 2] = color[2] * brightness;
+
+                sizes[i] = 0.3 + Math.random() * 1.5;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: { pointSize: { value: 3.0 } },
+                vertexShader: `
+                    attribute vec3 color;
+                    attribute float size;
+                    varying vec3 vColor;
+                    uniform float pointSize;
+                    void main() {
+                        vColor = color;
+                        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = pointSize * size * (150.0 / -mv.z);
+                        gl_Position = projectionMatrix * mv;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        float d = length(gl_PointCoord - 0.5);
+                        float a = 1.0 - smoothstep(0.0, 0.5, d);
+                        gl_FragColor = vec4(vColor * a * 1.2, a);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+
+            // Bloom layers with mode support
+            const bloomGeo = new THREE.BufferGeometry();
+            bloomGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            bloomGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            bloomGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const bloomMat = new THREE.ShaderMaterial({
+                uniforms: { 
+                    pointSize: { value: 15.0 }, 
+                    bloom: { value: bloomStrength },
+                    mode: { value: currentGlowMode },
+                    time: { value: 0 }
+                },
+                vertexShader: `
+                    attribute vec3 color;
+                    attribute float size;
+                    varying vec3 vColor;
+                    varying float vSize;
+                    uniform float pointSize;
+                    void main() {
+                        vColor = color;
+                        vSize = size;
+                        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = pointSize * size * (150.0 / -mv.z);
+                        gl_Position = projectionMatrix * mv;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    varying float vSize;
+                    uniform float bloom;
+                    uniform int mode;
+                    uniform float time;
+                    void main() {
+                        float d = length(gl_PointCoord - 0.5);
+                        float g = 0.0;
+                        vec3 col = vColor;
+                        
+                        if (mode == 0) {
+                            // Soft
+                            g = exp(-d * 2.5) * bloom * 0.2;
+                        } else if (mode == 1) {
+                            // Vivid
+                            g = exp(-d * 3.5) * bloom * 0.35;
+                            col = vColor * 1.2;
+                        } else if (mode == 2) {
+                            // Sparkle
+                            float sparkle = 0.5 + 0.5 * sin(time * 10.0 + vSize * 50.0);
+                            g = exp(-d * 2.5) * bloom * 0.15 * (0.5 + sparkle);
+                        } else if (mode == 3) {
+                            // Halo
+                            float ring = smoothstep(0.1, 0.2, d) * smoothstep(0.4, 0.25, d);
+                            g = (exp(-d * 2.0) * 0.15 + ring * 0.3) * bloom;
+                        } else if (mode == 4) {
+                            // Minimal
+                            g = exp(-d * 4.0) * bloom * 0.1;
+                        }
+                        
+                        gl_FragColor = vec4(col * g, g * 0.5);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            bloomSystem = new THREE.Points(bloomGeo, bloomMat);
+            scene.add(bloomSystem);
+
+            const bloom2Geo = new THREE.BufferGeometry();
+            bloom2Geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            bloom2Geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            bloom2Geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const bloom2Mat = new THREE.ShaderMaterial({
+                uniforms: { 
+                    pointSize: { value: 35.0 }, 
+                    bloom: { value: bloomStrength },
+                    mode: { value: currentGlowMode },
+                    time: { value: 0 }
+                },
+                vertexShader: `
+                    attribute vec3 color;
+                    attribute float size;
+                    varying vec3 vColor;
+                    varying float vSize;
+                    uniform float pointSize;
+                    void main() {
+                        vColor = color;
+                        vSize = size;
+                        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = pointSize * size * (150.0 / -mv.z);
+                        gl_Position = projectionMatrix * mv;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    varying float vSize;
+                    uniform float bloom;
+                    uniform int mode;
+                    uniform float time;
+                    void main() {
+                        float d = length(gl_PointCoord - 0.5);
+                        float g = 0.0;
+                        vec3 col = vColor;
+                        
+                        if (mode == 0) {
+                            // Soft
+                            g = exp(-d * 1.5) * bloom * 0.08;
+                        } else if (mode == 1) {
+                            // Vivid
+                            g = exp(-d * 2.0) * bloom * 0.15;
+                            col = vColor * 1.2;
+                        } else if (mode == 2) {
+                            // Sparkle
+                            float sparkle = 0.5 + 0.5 * sin(time * 8.0 + vSize * 30.0);
+                            g = exp(-d * 1.5) * bloom * 0.06 * (0.5 + sparkle);
+                        } else if (mode == 3) {
+                            // Halo
+                            float ring = smoothstep(0.15, 0.25, d) * smoothstep(0.5, 0.35, d);
+                            g = (exp(-d * 1.2) * 0.06 + ring * 0.15) * bloom;
+                        } else if (mode == 4) {
+                            // Minimal
+                            g = exp(-d * 2.5) * bloom * 0.03;
+                        }
+                        
+                        gl_FragColor = vec4(col * g, g * 0.25);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            bloom2System = new THREE.Points(bloom2Geo, bloom2Mat);
+            scene.add(bloom2System);
+        }
+
+        function createAgentStars() {
+            // Create 5 larger, distinct stars for agents in stable orbits
+            const agentOrbits = [
+                { radius: 55, inclination: 0.3, phase: 0 },
+                { radius: 70, inclination: 0.8, phase: Math.PI * 0.4 },
+                { radius: 85, inclination: 1.2, phase: Math.PI * 0.8 },
+                { radius: 100, inclination: 0.5, phase: Math.PI * 1.2 },
+                { radius: 115, inclination: 1.0, phase: Math.PI * 1.6 },
+            ];
+            
+            agents.forEach((agent, i) => {
+                const orbit = agentOrbits[i];
+                const color = agentColors[i];
+                
+                // Create star geometry
+                const starGeo = new THREE.SphereGeometry(AGENT_STAR_SIZE, 16, 16);
+                const starMat = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color[0], color[1], color[2])
+                });
+                const star = new THREE.Mesh(starGeo, starMat);
+                
+                // Store orbit data
+                star.userData = {
+                    agentId: agent.id,
+                    orbit: orbit,
+                    baseSpeed: 0.15 / Math.sqrt(orbit.radius)
+                };
+                
+                scene.add(star);
+                agentStars.push(star);
+                
+                // Create glow for agent star
+                const glowMat = new THREE.SpriteMaterial({
+                    map: createGlowTexture(),
+                    color: new THREE.Color(color[0], color[1], color[2]),
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    opacity: 0.4
+                });
+                const glow = new THREE.Sprite(glowMat);
+                glow.scale.set(25, 25, 1);
+                star.add(glow);
+                
+                // Create label
+                const label = document.createElement('div');
+                label.className = 'agent-label';
+                label.textContent = agent.name;
+                document.body.appendChild(label);
+                agentLabels.push(label);
+                
+                // Create invisible hitbox for clicking
+                const hitbox = document.createElement('div');
+                hitbox.className = 'star-hitbox';
+                hitbox.dataset.agentIndex = i;
+                document.body.appendChild(hitbox);
+                agentHitboxes.push(hitbox);
+            });
+        }
+
+        function updateAgentStars(time) {
+            agentStars.forEach((star, i) => {
+                const { orbit, baseSpeed } = star.userData;
+                const angle = orbit.phase + time * baseSpeed;
+                
+                const x = orbit.radius * Math.cos(angle);
+                const z = orbit.radius * Math.sin(angle);
+                
+                // Apply inclination
+                const y = z * Math.sin(orbit.inclination) * 0.3;
+                const z2 = z * Math.cos(orbit.inclination);
+                
+                star.position.set(x, y, z2);
+                
+                // Update label position
+                const screenPos = star.position.clone().project(camera);
+                const label = agentLabels[i];
+                const hitbox = agentHitboxes[i];
+                
+                if (screenPos.z < 1) {
+                    const x2d = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                    const y2d = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+                    
+                    label.style.left = x2d + 'px';
+                    label.style.top = y2d + 'px';
+                    
+                    hitbox.style.left = x2d + 'px';
+                    hitbox.style.top = y2d + 'px';
+                    hitbox.style.display = 'block';
+                } else {
+                    hitbox.style.display = 'none';
+                }
+            });
+        }
+
+        function createBackgroundStars() {
+            const count = 1200;
+            const pos = new Float32Array(count * 3);
+            const col = new Float32Array(count * 3);
+            
+            for (let i = 0; i < count; i++) {
+                const r = 400 + Math.random() * 1500;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i * 3 + 2] = r * Math.cos(phi);
+                
+                const brightness = 0.2 + Math.random() * 0.5;
+                col[i * 3] = brightness * 0.9;
+                col[i * 3 + 1] = brightness * 0.9;
+                col[i * 3 + 2] = brightness;
+            }
+            
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            
+            const mat = new THREE.PointsMaterial({ 
+                size: 1.2, vertexColors: true,
+                transparent: true, opacity: 0.7 
+            });
+            scene.add(new THREE.Points(geo, mat));
+        }
+
+        function updateParticlePosition(i, time) {
+            const orbit = orbits[i];
+            const angle = orbit.phase + time * orbit.speed;
+            
+            const x = orbit.semiMajor * Math.cos(angle);
+            const z = orbit.semiMinor * Math.sin(angle);
+            
+            const cosArg = Math.cos(orbit.argPeriapsis);
+            const sinArg = Math.sin(orbit.argPeriapsis);
+            const x1 = x * cosArg - z * sinArg;
+            const z1 = x * sinArg + z * cosArg;
+            
+            const cosInc = Math.cos(orbit.inclination);
+            const sinInc = Math.sin(orbit.inclination);
+            const y2 = z1 * sinInc;
+            const z2 = z1 * cosInc;
+            
+            const cosNode = Math.cos(orbit.ascendingNode);
+            const sinNode = Math.sin(orbit.ascendingNode);
+            const x3 = x1 * cosNode - z2 * sinNode;
+            const z3 = x1 * sinNode + z2 * cosNode;
+            
+            positions[i * 3] = x3;
+            positions[i * 3 + 1] = y2;
+            positions[i * 3 + 2] = z3;
+        }
+
+        function updateParticles(time) {
+            for (let i = 0; i < TOTAL_PARTICLES; i++) {
+                updateParticlePosition(i, time);
+            }
+            
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            bloomSystem.geometry.attributes.position.needsUpdate = true;
+            bloom2System.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // ============================================
+        // INTERACTION
+        // ============================================
+        
+        function setupControls() {
+            // Toggle names
+            document.getElementById('toggle-names').addEventListener('click', () => {
+                showNames = !showNames;
+                document.getElementById('toggle-names').classList.toggle('active', showNames);
+                agentLabels.forEach(label => {
+                    label.classList.toggle('visible', showNames);
+                });
+            });
+            
+            // Toggle glow mode for particles
+            let glowIndicatorTimeout;
+            document.getElementById('toggle-glow').addEventListener('click', () => {
+                currentGlowMode = (currentGlowMode + 1) % GLOW_MODES.length;
+                
+                // Update particle bloom shaders
+                if (bloomSystem) {
+                    bloomSystem.material.uniforms.mode.value = currentGlowMode;
+                }
+                if (bloom2System) {
+                    bloom2System.material.uniforms.mode.value = currentGlowMode;
+                }
+                
+                // Show indicator
+                const indicator = document.getElementById('glow-indicator');
+                indicator.textContent = GLOW_MODES[currentGlowMode];
+                indicator.classList.add('visible');
+                
+                clearTimeout(glowIndicatorTimeout);
+                glowIndicatorTimeout = setTimeout(() => {
+                    indicator.classList.remove('visible');
+                }, 1500);
+            });
+            
+            // Settings panel toggle
+            document.getElementById('toggle-settings').addEventListener('click', () => {
+                const panel = document.getElementById('settings-panel');
+                const btn = document.getElementById('toggle-settings');
+                panel.classList.toggle('active');
+                btn.classList.toggle('active');
+            });
+            
+            document.getElementById('close-settings').addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.remove('active');
+                document.getElementById('toggle-settings').classList.remove('active');
+            });
+            
+            // Speed slider
+            document.getElementById('speed-slider').addEventListener('input', (e) => {
+                particleSpeed = parseFloat(e.target.value);
+                document.getElementById('speed-value').textContent = particleSpeed.toFixed(1) + 'x';
+            });
+            
+            // Bloom slider
+            document.getElementById('bloom-slider').addEventListener('input', (e) => {
+                bloomStrength = parseFloat(e.target.value);
+                document.getElementById('bloom-value').textContent = bloomStrength.toFixed(1);
+                if (bloomSystem) bloomSystem.material.uniforms.bloom.value = bloomStrength;
+                if (bloom2System) bloom2System.material.uniforms.bloom.value = bloomStrength;
+            });
+            
+            // Camera rotation slider
+            document.getElementById('camera-slider').addEventListener('input', (e) => {
+                cameraSpeedMultiplier = parseFloat(e.target.value);
+                document.getElementById('camera-value').textContent = cameraSpeedMultiplier.toFixed(1) + 'x';
+                // Re-enable auto rotation when using slider
+                if (cameraSpeedMultiplier > 0) {
+                    autoRotate = true;
+                }
+            });
+            
+            // Reset settings
+            document.getElementById('reset-settings').addEventListener('click', () => {
+                particleSpeed = DEFAULTS.particleSpeed;
+                bloomStrength = DEFAULTS.bloomStrength;
+                cameraSpeedMultiplier = DEFAULTS.cameraSpeedMultiplier;
+                
+                // Reset camera state
+                autoRotate = true;
+                manualRotationX = 0;
+                manualRotationY = 0;
+                cameraDistance = 180;
+                
+                document.getElementById('speed-slider').value = particleSpeed;
+                document.getElementById('speed-value').textContent = particleSpeed.toFixed(1) + 'x';
+                document.getElementById('bloom-slider').value = bloomStrength;
+                document.getElementById('bloom-value').textContent = bloomStrength.toFixed(1);
+                document.getElementById('camera-slider').value = cameraSpeedMultiplier;
+                document.getElementById('camera-value').textContent = cameraSpeedMultiplier.toFixed(1) + 'x';
+                
+                if (bloomSystem) bloomSystem.material.uniforms.bloom.value = bloomStrength;
+                if (bloom2System) bloom2System.material.uniforms.bloom.value = bloomStrength;
+            });
+            
+            // Refresh data
+            document.getElementById('refresh-data').addEventListener('click', async () => {
+                const btn = document.getElementById('refresh-data');
+                btn.textContent = 'Refreshing...';
+                btn.style.opacity = '0.5';
+                
+                await refreshAgentData();
+                
+                btn.textContent = 'Refresh Agent Data';
+                btn.style.opacity = '1';
+            });
+            
+            document.getElementById('back-btn').addEventListener('click', closeAgentPanel);
+        }
+        
+        async function refreshAgentData() {
+            try {
+                const webhookUrl = window.APP_CONFIG?.WEBHOOK_FETCH_URL;
+                
+                if (webhookUrl && webhookUrl !== 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'fetch_agents' })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (Array.isArray(data) && data[0]?.agents) {
+                            agents = data[0].agents;
+                        } else if (data.agents) {
+                            agents = data.agents;
+                        } else if (Array.isArray(data)) {
+                            agents = data;
+                        }
+                        console.log('Refreshed agents from webhook:', agents);
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to refresh:', error);
+            }
+        }
+        
+        function setupInteraction() {
+            agentHitboxes.forEach((hitbox, i) => {
+                hitbox.addEventListener('click', () => {
+                    if (!isZooming) {
+                        selectAgent(i);
+                    }
+                });
+            });
+        }
+        
+        function selectAgent(index) {
+            selectedAgent = agents[index];
+            isZooming = true;
+            
+            // Animate camera to agent star
+            const star = agentStars[index];
+            const targetPos = star.position.clone();
+            const startPos = camera.position.clone();
+            const startTime = clock.getElapsedTime();
+            const duration = 1.5;
+            
+            function zoomIn() {
+                const elapsed = clock.getElapsedTime() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - t, 3);
+                
+                // Move camera closer to star
+                const direction = targetPos.clone().normalize();
+                const distance = 30;
+                const finalPos = targetPos.clone().sub(direction.multiplyScalar(distance));
+                
+                camera.position.lerpVectors(startPos, finalPos, eased);
+                camera.lookAt(targetPos);
+                
+                if (t < 1) {
+                    requestAnimationFrame(zoomIn);
+                } else {
+                    showAgentPanel();
+                    isZooming = false;
+                }
+            }
+            
+            zoomIn();
+        }
+        
+        let selectedAgentIndex = null;
+        
+        function showAgentPanel() {
+            const panel = document.getElementById('agent-panel');
+            const nameEl = document.getElementById('agent-name');
+            const moodEl = document.getElementById('mood-indicator');
+            const contentEl = document.getElementById('panel-content');
+            
+            nameEl.textContent = selectedAgent.name;
+            moodEl.textContent = selectedAgent.mood || 'unknown';
+            
+            contentEl.innerHTML = `
+                <div class="info-card highlight">
+                    <div class="info-label">Focus</div>
+                    <div class="info-value">${selectedAgent.focus || 'Not specified'}</div>
+                </div>
+                <div class="info-card warning">
+                    <div class="info-label">Bottleneck</div>
+                    <div class="info-value">${selectedAgent.bottleneck || 'Not specified'}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Proposed Action</div>
+                    <div class="info-value">${selectedAgent.proposedAction || 'Not specified'}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Proposed Deliverable</div>
+                    <div class="info-value">${selectedAgent.proposedDeliverable || 'Not specified'}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Casual Thought</div>
+                    <div class="info-value" style="font-style: italic;">"${selectedAgent.casualThought || 'Not specified'}"</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Core Beliefs</div>
+                    <div class="info-value">${selectedAgent.coreBeliefs || 'Not specified'}</div>
+                </div>
+            `;
+            
+            panel.classList.add('active');
+        }
+        
+        function closeAgentPanel() {
+            const panel = document.getElementById('agent-panel');
+            panel.classList.remove('active');
+            
+            isZooming = true;
+            const startPos = camera.position.clone();
+            const startTime = clock.getElapsedTime();
+            const duration = 1.0;
+            
+            // Calculate target position based on current camera angle and manual rotation
+            const horizontalAngle = cameraAngle + manualRotationX;
+            const verticalOffset = manualRotationY;
+            
+            function zoomOut() {
+                const elapsed = clock.getElapsedTime() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - t, 3);
+                
+                const r = cameraDistance + Math.sin(clock.getElapsedTime() * 0.015) * 20;
+                const targetPos = new THREE.Vector3(
+                    Math.cos(horizontalAngle) * r * Math.cos(verticalOffset),
+                    60 + Math.sin(clock.getElapsedTime() * 0.025) * 30 + Math.sin(verticalOffset) * r,
+                    Math.sin(horizontalAngle) * r * Math.cos(verticalOffset)
+                );
+                
+                camera.position.lerpVectors(startPos, targetPos, eased);
+                camera.lookAt(0, 0, 0);
+                
+                if (t < 1) {
+                    requestAnimationFrame(zoomOut);
+                } else {
+                    selectedAgent = null;
+                    isZooming = false;
+                }
+            }
+            
+            zoomOut();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsed = clock.getElapsedTime();
+            const deltaTime = elapsed - lastTime;
+            lastTime = elapsed;
+            
+            // Increment particle time based on delta (prevents jumps when changing speed)
+            particleTime += deltaTime * particleSpeed;
+
+            updateParticles(particleTime);
+            updateAgentStars(particleTime);
+            updateCenterGlow();
+            
+            // Update bloom shader time for sparkle effect
+            if (bloomSystem && bloomSystem.material.uniforms.time) {
+                bloomSystem.material.uniforms.time.value = elapsed;
+            }
+            if (bloom2System && bloom2System.material.uniforms.time) {
+                bloom2System.material.uniforms.time.value = elapsed;
+            }
+
+            // Only orbit camera if not zooming or viewing agent
+            if (!isZooming && !selectedAgent) {
+                // Auto-rotate if enabled (accumulate angle over time)
+                if (autoRotate) {
+                    cameraAngle += deltaTime * cameraSpeed * cameraSpeedMultiplier;
+                }
+                
+                // Calculate camera position with manual rotation added
+                const horizontalAngle = cameraAngle + manualRotationX;
+                const verticalOffset = manualRotationY;
+                
+                const r = cameraDistance + Math.sin(elapsed * 0.015) * 20;
+                camera.position.x = Math.cos(horizontalAngle) * r * Math.cos(verticalOffset);
+                camera.position.z = Math.sin(horizontalAngle) * r * Math.cos(verticalOffset);
+                camera.position.y = 60 + Math.sin(elapsed * 0.025) * 30 + Math.sin(verticalOffset) * r;
+                camera.lookAt(0, 0, 0);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Start the app
+        fetchAgentData();
+    </script>
+</body>
+</html>

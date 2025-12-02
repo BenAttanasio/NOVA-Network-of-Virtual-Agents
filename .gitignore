@@ -1,0 +1,19 @@
+# Secrets & Config
+
+config.js
+Config.js
+.env
+
+# Dependencies
+
+node_modules/
+
+# OS Generated
+
+.DS_Store
+Thumbs.db
+
+# Build outputs (optional, good practice)
+
+dist/
+build/
