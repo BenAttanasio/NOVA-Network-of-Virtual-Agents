@@ -4,196 +4,115 @@ A beautiful 3D visualization of your AI agents as stars orbiting a central point
 
 ![Agent Constellation Preview](preview.png)
 
-## Features
+---
 
-- 🌟 5 agent stars with distinct colors orbiting in 3D space
-- 👁️ Toggle agent name labels
-- 🔍 Smooth zoom animation when selecting an agent
-- 📱 Mobile-friendly detail panel
-- 🔄 Webhook integration with n8n + Notion
-- ✨ Beautiful bloom effects and particle system
+# 🚀 Hardware & Environment Specs: RPi 5 Touch Node
 
-## Quick Start
+### 1. The Build (Hardware Profile)
+* **Core Unit:** Raspberry Pi 5
+    * **SoC:** Broadcom BCM2712 (2.4GHz Quad-Core ARM Cortex-A76).
+    * **GPU:** VideoCore VII (OpenGL ES 3.1, Vulkan 1.2).
+    * **I/O Controller:** RP1 (Dedicated silicon for USB, Ethernet, Camera, Display).
+    * **Power Management:** Renesas DA9091 PMIC (Real-time clock + physical power button support).
+* **Storage:** 128GB Amazon Basics MicroSDXC (Class A2, U3)
+    * *Performance:* High IOPS (A2) for fast application loading; 100 MB/s read.
 
-### Local Development
+### 2. Visual Interface
+* **Hardware:** DSI Touchscreen Display (ED-HMI3010-101C-0032).
+* **Resolution:** 1280x800 (Native Landscape).
+* **Connection Logic:**
+    * Video: DSI Ribbon Cable (Port: `DSI-2`).
+    * Touch: GPIO Jumper Wires.
 
-1. Clone the repo
-2. Copy `config.template.js` to `config.js`
-3. Open `index.html` in a browser (or use a local server)
+---
 
-The app works with test data out of the box.
+# 🚀 NOVA Hardware: Complete Deployment Protocol
 
-### With Live Data (n8n + Notion)
+**Objective:** Zero-touch kiosk mode on Raspberry Pi 5.
+**Target Directory:** `~/nova`
 
-1. Set up your Notion database with these properties:
-   - Name (title)
-   - Bottleneck (text)
-   - Proposed Action (text)
-   - Casual Thought (text)
-   - Proposed Deliverable (text)
-   - Mood (select: focused, curious, cautious, optimistic, determined)
-   - Focus (text)
-   - Core Beliefs (text)
-
-2. Create an n8n workflow:
-   ```
-   Webhook (POST) → Notion Query → Respond to Webhook
-   ```
-
-3. Update `config.js` with your webhook URL
-
-## Deployment to Vercel
-
-### Option 1: Static Deployment (Simplest)
-
-Since this is a static HTML/JS app, you can deploy directly:
+## 1. System Provisioning
+Update core and install dependencies.
 
 ```bash
-npm i -g vercel
-vercel
+sudo apt update
+sudo apt install chromium git -y
 ```
 
-### Option 2: With Environment Variables (Recommended)
+## 2. Deploy Codebase
+Clone private repo using PAT token.
 
-For production, use environment variables instead of hardcoded URLs:
-
-1. Create `vercel.json`:
-```json
-{
-  "buildCommand": "node build.js",
-  "outputDirectory": "dist"
-}
+```bash
+git clone [https://github.com/BenAttanasio/NOVA-Network-of-Virtual-Agents.git](https://github.com/BenAttanasio/NOVA-Network-of-Virtual-Agents.git) ~/nova
+cd ~/nova
 ```
 
-2. Create `build.js`:
-```javascript
-const fs = require('fs');
+## 3. Configuration
 
-// Read template
-let html = fs.readFileSync('index.html', 'utf8');
-let config = fs.readFileSync('config.template.js', 'utf8');
-
-// Replace placeholders with env vars
-config = config.replace(
-  'YOUR_N8N_WEBHOOK_URL_HERE',
-  process.env.WEBHOOK_FETCH_URL || 'YOUR_N8N_WEBHOOK_URL_HERE'
-);
-
-// Create dist folder
-fs.mkdirSync('dist', { recursive: true });
-fs.writeFileSync('dist/index.html', html);
-fs.writeFileSync('dist/config.js', config);
+**Rename Folder (If cloned as 'opus'):**
+```bash
+mv ~/opus ~/nova
 ```
 
-3. Set environment variables in Vercel dashboard:
-   - `WEBHOOK_FETCH_URL`: Your n8n webhook URL
-
-## n8n Webhook Setup
-
-### Fetch Agents Workflow
-
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Webhook   │───▶│ Notion Query │───▶│ Respond to      │
-│   (POST)    │    │ Database     │    │ Webhook (JSON)  │
-└─────────────┘    └──────────────┘    └─────────────────┘
+**Add Webhook URL:**
+```bash
+nano ~/nova/config.js
+# Paste real n8n URL over the placeholder
 ```
 
-**Webhook Node Settings:**
-- HTTP Method: POST
-- Response Mode: Last Node
+## 4. The "Self-Healing" Launch Script
 
-**Notion Node Settings:**
-- Operation: Get Many
-- Database: Your agents database
+**Path:** `~/nova/start_kiosk.sh`
 
-**Respond to Webhook Node:**
-- Response Body: 
-```json
-{
-  "agents": {{ $json }}
-}
+```bash
+#!/bin/bash
+exec > /home/pi/nova/kiosk.log 2>&1
+echo "--- Boot Run: $(date) ---"
+
+cd /home/pi/nova
+
+# Auto-Fix Case Sensitivity
+if [ -f "Index.html" ]; then mv Index.html index.html; fi
+if [ -f "Opus_Index.html" ]; then mv Opus_Index.html index.html; fi
+
+# Auto-Generate Config
+if [ ! -f "config.js" ]; then
+    if [ -f "Config.template.js" ]; then cp Config.template.js config.js; fi
+fi
+
+# Start Server & Browser
+echo "Starting System..."
+python3 -m http.server 3000 &
+sleep 5
+
+chromium \
+  --kiosk \
+  --noerrdialogs \
+  --enable-gpu-rasterization \
+  --ignore-gpu-blocklist \
+  http://localhost:3000/index.html
 ```
 
-### Expected Response Format
-
-```json
-{
-  "agents": [
-    {
-      "id": 1,
-      "name": "Atlas",
-      "bottleneck": "Waiting on API rate limits",
-      "proposedAction": "Implement request queuing",
-      "casualThought": "I wonder if we could batch these...",
-      "proposedDeliverable": "Optimized API module",
-      "mood": "focused",
-      "focus": "Backend Infrastructure",
-      "coreBeliefs": "Reliability over speed."
-    }
-  ]
-}
+**Make executable:**
+```bash
+chmod +x ~/nova/start_kiosk.sh
 ```
 
-## Customization
+## 5. Enable Autostart
 
-### Colors
+**Create:** `~/.config/autostart/nova.desktop`
 
-Edit the `agentColors` array in `index.html`:
-
-```javascript
-const agentColors = [
-    [0.6, 0.85, 1.0],   // Cyan
-    [1.0, 0.8, 0.9],    // Pink
-    [0.8, 1.0, 0.85],   // Mint
-    [1.0, 0.9, 0.7],    // Warm
-    [0.85, 0.75, 1.0],  // Lavender
-];
+```ini
+[Desktop Entry]
+Type=Application
+Name=NOVA Kiosk
+Exec=/bin/bash /home/pi/nova/start_kiosk.sh
+StartupNotify=false
+Terminal=false
 ```
 
-### Mood Emojis
+## 6. Maintenance Commands
 
-Edit the `MOOD_EMOJIS` object:
-
-```javascript
-const MOOD_EMOJIS = {
-    focused: "🎯",
-    curious: "🔮",
-    cautious: "🛡️",
-    optimistic: "✨",
-    determined: "💫",
-    default: "🌟"
-};
-```
-
-### Particle Count
-
-Adjust `TOTAL_PARTICLES` for performance:
-
-```javascript
-const TOTAL_PARTICLES = 2000; // Lower for mobile
-```
-
-## File Structure
-
-```
-agent-constellation/
-├── index.html          # Main app
-├── config.js           # Your webhook URLs (gitignored)
-├── config.template.js  # Template for config
-├── .gitignore
-└── README.md
-```
-
-## Browser Support
-
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
-
-Requires WebGL support.
-
-## License
-
-MIT
+* **Manual Kill:** `pkill chromium; pkill python`
+* **Check Logs:** `cat ~/nova/kiosk.log`
+* **Manual Run:** `DISPLAY=:0 bash ~/nova/start_kiosk.sh`
