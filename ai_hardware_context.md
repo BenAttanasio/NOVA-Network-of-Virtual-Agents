@@ -24,6 +24,6 @@
 ## 4. Command Center (CLI)
 
 ### Resetting Connection (If you re-imaged the SD card)
-Run this on your main computer to clear old host keys and avoid security warnings:
+Run on your main computer to clear old host keys and avoid security warnings:
 ```bash
 ssh-keygen -R raspberrypi.local

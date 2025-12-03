@@ -13,7 +13,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Build outputs (optional, good practice)
+# Build outputs (optional, good practice) 
 
 dist/
 build/
