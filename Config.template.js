@@ -11,6 +11,6 @@ window.APP_CONFIG = {
     // n8n webhook URL for updating agent data (optional)
     WEBHOOK_UPDATE_URL: 'YOUR_N8N_WEBHOOK_URL_HERE',
     
-    // Refresh interval in milliseconds (0 = no auto-refresh) 
+    // Refresh interval in milliseconds (0 = no auto-refresh)
     REFRESH_INTERVAL: 0,
 };
