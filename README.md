@@ -2,9 +2,14 @@
 
 Includes a beautiful 3D visualization of your AI agents as stars orbiting a central point. Click on any agent star to zoom in and view their current status, thoughts, and focus areas.
 
+### Cosmic UI
 ![Cosmic UI Preview](assets/gif_nova.gif)
-![ChatGPT UI Preview](preview_3.png)
-![n8n Flow Preview](preview_4.png)
+
+### ChatGPT UI
+![ChatGPT UI Preview](assets/preview_3.png)
+
+### n8n Back End
+![n8n Flow Preview](assets/preview_4.png)
 
 ---
 
