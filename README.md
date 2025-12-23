@@ -1,8 +1,10 @@
-# Agent Constellation
+# Nova - Network of Virtual Agents
 
-A beautiful 3D visualization of your AI agents as stars orbiting a central point. Click on any agent star to zoom in and view their current status, thoughts, and focus areas.
+Includes a beautiful 3D visualization of your AI agents as stars orbiting a central point. Click on any agent star to zoom in and view their current status, thoughts, and focus areas.
 
-![Agent Constellation Preview](preview.png)
+![Cosmic UI Preview](assets/gif_nova.gif)
+![ChatGPT UI Preview](preview_3.png)
+![n8n Flow Preview](preview_4.png)
 
 ---
 
@@ -116,3 +118,7 @@ Terminal=false
 * **Manual Kill:** `pkill chromium; pkill python`
 * **Check Logs:** `cat ~/nova/kiosk.log`
 * **Manual Run:** `DISPLAY=:0 bash ~/nova/start_kiosk.sh`
+
+# How it was made
+Solar UI with Opus 4.5
+Everything else with Gemini 3.0 Pro
