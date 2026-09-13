@@ -1,94 +1,64 @@
-# Nova - Network of Virtual Agents
+# Nova
 
-Includes a beautiful 3D visualization of your AI agents as stars orbiting a central point. Click on any agent star to zoom in and view their current status, thoughts, and focus areas.
+Nova shows a roster of AI agents as stars orbiting a centre. Click one and the
+camera flies to it, and you get that agent's status, current thoughts, and what
+it's focused on. It runs as a kiosk on a Raspberry Pi 5 with a touchscreen, and
+it works the same in any browser.
 
-### Cosmic UI
-![Cosmic UI Preview](assets/gif_nova.gif)
+![Cosmic UI](assets/gif_nova.gif)
 
-### ChatGPT UI
-![ChatGPT UI Preview](assets/preview_3.png)
+It's one HTML file with Three.js from a CDN. There's no build step, no framework,
+and no bundler.
 
-### n8n Back End
-![n8n Flow Preview](assets/preview_4.png)
+## Running it
 
----
+```bash
+cp config.template.js config.js
+python3 -m http.server 3000
+```
 
-# 🚀 Hardware & Environment Specs: RPi 5 Touch Node
+Then open http://localhost:3000.
 
-### 1. The Build (Hardware Profile)
-* **Core Unit:** Raspberry Pi 5
-    * **SoC:** Broadcom BCM2712 (2.4GHz Quad-Core ARM Cortex-A76).
-    * **GPU:** VideoCore VII (OpenGL ES 3.1, Vulkan 1.2).
-    * **I/O Controller:** RP1 (Dedicated silicon for USB, Ethernet, Camera, Display).
-    * **Power Management:** Renesas DA9091 PMIC (Real-time clock + physical power button support).
-* **Storage:** 128GB Amazon Basics MicroSDXC (Class A2, U3)
-    * *Performance:* High IOPS (A2) for fast application loading; 100 MB/s read.
+`config.js` is gitignored, and it holds two n8n webhook URLs:
 
-### 2. Visual Interface
-* **Hardware:** DSI Touchscreen Display (ED-HMI3010-101C-0032).
-* **Resolution:** 1280x800 (Native Landscape).
-* **Connection Logic:**
-    * Video: DSI Ribbon Cable (Port: `DSI-2`).
-    * Touch: GPIO Jumper Wires.
+| Key | What it's for |
+|---|---|
+| `WEBHOOK_FETCH_URL` | Returns every agent, read from Notion |
+| `WEBHOOK_UPDATE_URL` | Writes agent updates back. Optional |
+| `REFRESH_INTERVAL` | Milliseconds between refreshes. 0 disables polling |
 
----
+The front end knows nothing about Notion. It asks a webhook for a list of agents
+and draws it, so swapping Notion for a database or a flat JSON file means
+changing the n8n flow and nothing here.
 
-# 🚀 NOVA Hardware: Complete Deployment Protocol
+![ChatGPT UI](assets/preview_3.png)
+![n8n back end](assets/preview_4.png)
 
-**Objective:** Zero-touch kiosk mode on Raspberry Pi 5.
-**Target Directory:** `~/nova`
+## Running it as a kiosk
 
-## 1. System Provisioning
-Update core and install dependencies.
+Built for a Raspberry Pi 5 with a DSI touchscreen at 1280x800.
 
 ```bash
 sudo apt update
 sudo apt install chromium git -y
-```
-
-## 2. Deploy Codebase
-Clone private repo using PAT token.
-
-```bash
-git clone [https://github.com/BenAttanasio/NOVA-Network-of-Virtual-Agents.git](https://github.com/BenAttanasio/NOVA-Network-of-Virtual-Agents.git) ~/nova
+git clone <your-fork> ~/nova
 cd ~/nova
+cp config.template.js config.js    # then paste your webhook URL in
 ```
 
-## 3. Configuration
-
-**Rename Folder (If cloned as 'opus'):**
-```bash
-mv ~/opus ~/nova
-```
-
-**Add Webhook URL:**
-```bash
-nano ~/nova/config.js
-# Paste real n8n URL over the placeholder
-```
-
-## 4. The "Self-Healing" Launch Script
-
-**Path:** `~/nova/start_kiosk.sh`
+`start_kiosk.sh` serves the directory and launches Chromium in kiosk mode:
 
 ```bash
 #!/bin/bash
 exec > /home/pi/nova/kiosk.log 2>&1
 echo "--- Boot Run: $(date) ---"
-
 cd /home/pi/nova
 
-# Auto-Fix Case Sensitivity
-if [ -f "Index.html" ]; then mv Index.html index.html; fi
-if [ -f "Opus_Index.html" ]; then mv Opus_Index.html index.html; fi
-
-# Auto-Generate Config
+# generate a config on first boot so a fresh clone still starts
 if [ ! -f "config.js" ]; then
-    if [ -f "Config.template.js" ]; then cp Config.template.js config.js; fi
+    cp config.template.js config.js
 fi
 
-# Start Server & Browser
-echo "Starting System..."
 python3 -m http.server 3000 &
 sleep 5
 
@@ -100,14 +70,8 @@ chromium \
   http://localhost:3000/index.html
 ```
 
-**Make executable:**
-```bash
-chmod +x ~/nova/start_kiosk.sh
-```
-
-## 5. Enable Autostart
-
-**Create:** `~/.config/autostart/nova.desktop`
+`chmod +x start_kiosk.sh`, then autostart it with
+`~/.config/autostart/nova.desktop`:
 
 ```ini
 [Desktop Entry]
@@ -118,12 +82,39 @@ StartupNotify=false
 Terminal=false
 ```
 
-## 6. Maintenance Commands
+The `sleep 5` before Chromium starts is doing real work. Without it the browser
+races the Python server and you get a blank kiosk with no error on screen, on a
+device with no keyboard attached to go and investigate with.
 
-* **Manual Kill:** `pkill chromium; pkill python`
-* **Check Logs:** `cat ~/nova/kiosk.log`
-* **Manual Run:** `DISPLAY=:0 bash ~/nova/start_kiosk.sh`
+`--ignore-gpu-blocklist` and `--enable-gpu-rasterization` matter too. The Pi 5's
+VideoCore VII is fine at this, and Chromium blocklists it by default, which
+drops you to software rendering and a starfield that runs at about 4fps.
 
-# How it was made
-Solar UI with Opus 4.5
-Everything else with Gemini 3.0 Pro
+## Layout
+
+```
+index.html            the whole thing: Three.js scene, UI, webhook client
+config.template.js    copy to config.js and fill in
+assets/               previews and the avatar
+ui_ideas/             alternate interfaces that were tried and not shipped
+ai_context/           design notes and the platform architecture
+vercel.json
+```
+
+`ui_ideas/` has a pixel-art version, a neural-network layout, a totem, and a
+Pokemon-styled one. None of them shipped. They're kept because the starfield only
+looks obvious in hindsight.
+
+## Limitations
+
+- The agent data is whatever your webhook returns. There's no backend here.
+- WebGL, so it needs a GPU that can rasterise a few hundred sprites. A Pi 4
+  manages it and it's not pleasant.
+- Three.js r128 from a CDN, so there's no offline mode.
+- Kiosk instructions are Raspberry Pi OS specific. The page itself runs anywhere.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+More at [benattanasio.com/lab](https://benattanasio.com/lab).
