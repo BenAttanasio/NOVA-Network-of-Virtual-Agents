@@ -125,7 +125,7 @@ During coordination, all agents:
 
 ### How Nova Uses n8n
 1. **Command Trigger:** User action sent through `runNova` JSON payload
-2. **n8n Workflow Activation:** Payload hits hosted workflow at `benattanasio.app.n8n.cloud`, routes based on `action_type`
+2. **n8n Workflow Activation:** Payload hits hosted workflow at `your-instance.app.n8n.cloud`, routes based on `action_type`
 3. **Agent Dispatch:** n8n dynamically selects and notifies agents, each receiving full prompt context
 4. **Synthesis & Response:** Nova receives all responses, scores relevance, merges into single output
 5. **Visualization Hook:** Cosmic UI listens to WebSocket/REST callbacks to animate agent activity
